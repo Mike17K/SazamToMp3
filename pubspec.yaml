@@ -40,6 +40,7 @@ dependencies:
   audioplayers: ^5.1.0
   ffmpeg_kit_flutter: ^6.0.3
   permission_handler: ^11.0.0
+  flutter_dotenv: ^5.1.0
 
 dev_dependencies:
   flutter_test:

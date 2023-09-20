@@ -12,6 +12,7 @@ class YouTubeService {
   YouTubeService._internal();
 
   final YoutubeExplode ytExplode = YoutubeExplode();
+  SearchClient searchClient = SearchClient(YoutubeHttpClient());
 
   String? _videoId; 
   Stream? _stream;
@@ -61,4 +62,9 @@ class YouTubeService {
     }
   }
 
+  Future<List<Video>> search(String keyword) async {
+    VideoSearchList results = await searchClient.search(keyword);
+    List<Video> videos = results.take(10).toList();
+    return videos;
+  }
 }

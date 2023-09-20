@@ -5,18 +5,18 @@ import 'package:sazamtomp3/screens/first_screen.dart';
 import 'package:sazamtomp3/screens/search_screen.dart';
 import 'package:sazamtomp3/screens/song_screen.dart';
 
-Future<void> initializeDatabases() async {
+Future<void> initialize() async {
   await dotenv.load(fileName: '.env');
 }
 
 void main() async {
   
-  await initializeDatabases();
+  await initialize();
 
   WidgetsFlutterBinding.ensureInitialized();
 
   runApp(MaterialApp(
-    title: 'TeamTrackPro',
+    title: 'Sazam To Mp3',
     theme: ThemeData(
       primarySwatch: Colors.blue,
     ),

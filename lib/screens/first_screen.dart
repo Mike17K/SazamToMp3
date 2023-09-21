@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:sazamtomp3/constants/routes.dart';
 import 'package:sazamtomp3/helpers/shrink_text.dart';
 import 'package:sazamtomp3/services/youtube_service.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
@@ -18,6 +19,10 @@ class _FirstScreenState extends State<FirstScreen> {
   FocusScopeNode _focusScopeNode = FocusScopeNode();
 
   bool _isSearching = false;
+  bool _isLoadingSong = false;
+  Video? _video;
+  bool _redirectToSongScreen = false;
+
   DateTime _lastChangeTime = DateTime.now();
 
   final StreamController<List<Video>> _searchResultsController = StreamController<List<Video>>.broadcast();
@@ -26,20 +31,12 @@ class _FirstScreenState extends State<FirstScreen> {
 
   @override
   void initState() {
-    super.initState();
     _searchResults = _searchResultsController.stream;
 
     _textController = TextEditingController();
     _focusScopeNode = FocusScopeNode();
-  }
 
-  @override
-  void dispose() {
-    _textController.dispose();
-    _focusScopeNode.dispose();
-    _searchResultsController.close();
-
-    super.dispose();
+    super.initState();
   }
 
   void _startSearching() {
@@ -57,6 +54,10 @@ class _FirstScreenState extends State<FirstScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if(_redirectToSongScreen) {
+      _redirectToSongScreen = false;
+      Navigator.of(context).pushNamed(songScreenRoute, arguments: _video);
+    }
     return Scaffold(
       body: GestureDetector(
         onTap: () {
@@ -75,13 +76,14 @@ class _FirstScreenState extends State<FirstScreen> {
               child: Column(
                 mainAxisAlignment: _isSearching? MainAxisAlignment.start: MainAxisAlignment.center,
                 children: [
+                  if(_isLoadingSong) const CircularProgressIndicator(),
                   if(_isSearching) const SizedBox(height: 100),
-                  searchBarWidget(),
+                  if(!_isLoadingSong) searchBarWidget(),
                   const SizedBox(height: 10),
                   Visibility(
                     visible: _isSearching,
                     child: searchBarResultsWidget()),
-                  if(!_isSearching) ElevatedButton(
+                  if(!_isSearching && !_isLoadingSong) ElevatedButton(
                     onPressed: () {
                       // TODO
                     },
@@ -163,7 +165,7 @@ class _FirstScreenState extends State<FirstScreen> {
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: results.length,
                     itemBuilder: (context, index) {
-                      var result = results[index];
+                      final Video result = results[index];
                       return Container(
                         width: 300,
                         height: 60,
@@ -181,8 +183,33 @@ class _FirstScreenState extends State<FirstScreen> {
                             shringText(result.title, 24),
                             style: const TextStyle(fontSize: 16),
                           ),
-                          onTap: () {
-                            print('Tapped on ${result.title}');
+                          onTap: () async {
+                            setState(() {
+                              _isSearching = false;
+                              _isLoadingSong = true;
+                            });
+
+                            try{
+                              _youTubeService.setVideoId( result.id.value);
+                              
+                              await _youTubeService.fetchVideo();
+                              
+                              setState(() {
+                                _isSearching = true;
+                                _isLoadingSong = false;
+                                _redirectToSongScreen = true;
+                                _video = result;               
+                              });
+
+                            }catch(e){
+                              print("Errors: ");
+                              print(e);
+                            }
+                                                        
+                            setState(() {
+                              _isSearching = true;
+                              _isLoadingSong = false;
+                            });
                           },
                         ),
                       );
@@ -202,14 +229,8 @@ class _FirstScreenState extends State<FirstScreen> {
 
   Future<void> _performSearch() async {
   String searchText = _textController.text;
-  print('Search Text: $searchText');
   
   List<Video> results = await _youTubeService.search(searchText);
-
-  for (final video in results) {
-    print('Video: ${video.title} - ${video.thumbnails.highResUrl}');
-  }
-
   _searchResultsController.add(results);
 }
 
